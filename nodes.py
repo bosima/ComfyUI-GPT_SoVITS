@@ -303,7 +303,7 @@ class GPT_SOVITS_FT:
     def INPUT_TYPES(s):
         ft_language_list = ["zh", "en", "ja"]
         return {"required":
-                    {"audio": ("AUDIO",),
+                    {"audio": ("STRING",),
                      "srt": ("SRT",),
                      "exp_name": ("STRING",{
                          "default": "auto"
