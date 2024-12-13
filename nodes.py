@@ -15,33 +15,34 @@ from .finetune import open1abc,default_batch_size,open1Ba,open1Bb
 i18n = I18nAuto()
 
 parent_directory = os.path.dirname(os.path.abspath(__file__))
-input_path = folder_paths.get_input_directory()
-out_path = folder_paths.get_output_directory()
+
 language_list = [i18n("中文"), i18n("英文"), i18n("日文"), i18n("中英混合"), i18n("日英混合"), i18n("多语种混合")]
 weights_path = os.path.join(parent_directory,"pretrained_models")
-SoVITS_weight_root = os.path.join(out_path,"sovits_weights")
-os.makedirs(SoVITS_weight_root,exist_ok=True)
-
-GPT_weight_root = os.path.join(out_path,"gpt_weights")
-os.makedirs(GPT_weight_root,exist_ok=True)
-sovits_files = sorted(os.listdir(SoVITS_weight_root),reverse=True)
-        
-gpt_files = sorted(os.listdir(GPT_weight_root),reverse=True)
 
 class GPT_SOVITS_TTS:
     @classmethod
     def INPUT_TYPES(s):
         how_to_cuts = [i18n("不切"), i18n("凑四句一切"), i18n("凑50字一切"), i18n("按中文句号。切"), i18n("按英文句号.切"), i18n("按标点符号切"), ]
         
+        out_path = folder_paths.get_output_directory()
+        GPT_weight_root = os.path.join(out_path,"gpt_weights")
+        os.makedirs(GPT_weight_root,exist_ok=True)
+        gpt_files = sorted(os.listdir(GPT_weight_root),reverse=True)
+        
+        out_path = folder_paths.get_output_directory()
+        SoVITS_weight_root = os.path.join(out_path,"sovits_weights")
+        os.makedirs(SoVITS_weight_root,exist_ok=True)
+        sovits_files = sorted(os.listdir(SoVITS_weight_root),reverse=True)
+
         return {"required":
                     {
-                     "renfer_audio":("AUDIO",),
+                     "renfer_audio":("STRING",),
                      "refer_srt":("SRT",),
                      "refer_language":(language_list,{
                          "default": i18n("中文")
                      }),
                      "text": ("STRING",{
-                         "default": "你好啊！世界",
+                         "default": "你好，萤火君！我是工藤新一，小号柯南。",
                          "multiline": True
                      }),
                      "text_language":(language_list,{
@@ -92,8 +93,15 @@ class GPT_SOVITS_TTS:
         prompt_text = f'{dot_}'.join([sub.content for sub in list(SrtPare(file_content))])
         print(f"prompt_text:{prompt_text}")
         outfile = os.path.join(out_path, f"{ttime()}_gpt_sovits_tts.wav")
+        
+        out_path = folder_paths.get_output_directory()
+        GPT_weight_root = os.path.join(out_path,"gpt_weights")
         gpt_weight = os.path.join(GPT_weight_root, gpt_weight)
+        
+        out_path = folder_paths.get_output_directory()
+        SoVITS_weight_root = os.path.join(out_path,"sovits_weights")
         sovits_weight = os.path.join(SoVITS_weight_root, sovits_weight)
+        
         get_tts_wav(renfer_audio,prompt_text,prompt_language,
             text,text_language,how_to_cut,top_k,top_p,temperature,
             gpt_weight,sovits_weight,outfile)
@@ -104,10 +112,20 @@ class GPT_SOVITS_INFER:
     @classmethod
     def INPUT_TYPES(s):
         how_to_cuts = [i18n("不切"), i18n("凑四句一切"), i18n("凑50字一切"), i18n("按中文句号。切"), i18n("按英文句号.切"), i18n("按标点符号切"), ]
+                
+        out_path = folder_paths.get_output_directory()
+        GPT_weight_root = os.path.join(out_path,"gpt_weights")
+        os.makedirs(GPT_weight_root,exist_ok=True)
+        gpt_files = sorted(os.listdir(GPT_weight_root),reverse=True)
+        
+        out_path = folder_paths.get_output_directory()
+        SoVITS_weight_root = os.path.join(out_path,"sovits_weights")
+        os.makedirs(SoVITS_weight_root,exist_ok=True)
+        sovits_files = sorted(os.listdir(SoVITS_weight_root),reverse=True)
         
         return {"required":
                     {
-                     "renfer_audio":("AUDIO",),
+                     "renfer_audio":("STRING",),
                      "refer_srt":("SRT",),
                      "if_aliginment":("BOOLEAN",{
                          "default": False
@@ -159,6 +177,11 @@ class GPT_SOVITS_INFER:
     def get_tts_wav(self,renfer_audio,refer_srt,if_aliginment,
                     if_mutiple_speaker,refer_language,text_srt,text_language,
                     gpt_weight,sovits_weight,how_to_cut,top_k,top_p,temperature):
+        input_path = folder_paths.get_input_directory()
+        
+        out_path = folder_paths.get_output_directory()
+        GPT_weight_root = os.path.join(out_path,"gpt_weights")
+        SoVITS_weight_root = os.path.join(out_path,"sovits_weights")
         
         prompt_language = dict_language[refer_language]
 
@@ -376,6 +399,10 @@ class GPT_SOVITS_FT:
                  gpt_total_epoch,if_dpo,if_save_latest_gpt,if_save_every_gpt_weights,
                  gpt_save_every_epoch):
         logging.disable(logging.WARNING)
+        out_path = folder_paths.get_output_directory()
+        GPT_weight_root = os.path.join(out_path,"gpt_weights")
+        SoVITS_weight_root = os.path.join(out_path,"sovits_weights")
+        
         logs_path = os.path.join(parent_directory,"logs")
         shutil.rmtree(logs_path,ignore_errors=True)
         srt_path = folder_paths.get_annotated_filepath(srt)
@@ -472,6 +499,7 @@ class PreViewAudio:
 class LoadAudio:
     @classmethod
     def INPUT_TYPES(s):
+        input_path = folder_paths.get_input_directory()
         files = [f for f in os.listdir(input_path) if os.path.isfile(os.path.join(input_path, f)) and f.split('.')[-1] in ["wav", "mp3","WAV","flac","m4a"]]
         return {"required":
                     {"audio": (sorted(files),)},
@@ -489,6 +517,7 @@ class LoadAudio:
 class LoadSRT:
     @classmethod
     def INPUT_TYPES(s):
+        input_path = folder_paths.get_input_directory()
         files = [f for f in os.listdir(input_path) if os.path.isfile(os.path.join(input_path, f)) and f.split('.')[-1] in ["srt", "txt"]]
         return {"required":
                     {"srt": (sorted(files),)},
