@@ -8,7 +8,7 @@ from config import python_exec
 from tools import my_utils
 from subprocess import Popen
 from .inference import is_half,bert_path,parent_directory,cnhubert_base_path
-out_path = folder_paths.get_output_directory()
+
 if_gpu_ok = False
 ngpu = torch.cuda.device_count()
 gpu_infos = []
@@ -204,6 +204,7 @@ import json
 import yaml
 p_train_SoVITS=None
 def open1Ba(batch_size,total_epoch,exp_name,text_low_lr_rate,if_save_latest,if_save_every_weights,save_every_epoch,pretrained_s2G,pretrained_s2D,work_path):
+    out_path = folder_paths.get_output_directory()
     SoVITS_weight_root = os.path.join(out_path,"sovits_weights")
     os.makedirs(SoVITS_weight_root, exist_ok=True)
     global p_train_SoVITS
@@ -251,6 +252,7 @@ def close1Ba():
 p_train_GPT=None
 gpu_numbers = "%s" % (gpus)
 def open1Bb(batch_size,total_epoch,exp_name,if_dpo,if_save_latest,if_save_every_weights,save_every_epoch,pretrained_s1,work_path):
+    out_path = folder_paths.get_output_directory()
     GPT_weight_root = os.path.join(out_path,"gpt_weights")
     global p_train_GPT
     if(p_train_GPT==None):

@@ -1,5 +1,6 @@
 import os
 import torch
+import torchaudio
 import shutil
 import audiotsm
 import logging
@@ -29,14 +30,13 @@ class GPT_SOVITS_TTS:
         os.makedirs(GPT_weight_root,exist_ok=True)
         gpt_files = sorted(os.listdir(GPT_weight_root),reverse=True)
         
-        out_path = folder_paths.get_output_directory()
         SoVITS_weight_root = os.path.join(out_path,"sovits_weights")
         os.makedirs(SoVITS_weight_root,exist_ok=True)
         sovits_files = sorted(os.listdir(SoVITS_weight_root),reverse=True)
 
         return {"required":
                     {
-                     "renfer_audio":("STRING",),
+                     "renfer_audio":("AUDIOPATH",),
                      "refer_srt":("SRT",),
                      "refer_language":(language_list,{
                          "default": i18n("中文")
@@ -85,7 +85,7 @@ class GPT_SOVITS_TTS:
     def get_tts_wav(self,renfer_audio,refer_srt,refer_language,
             text,text_language,gpt_weight,sovits_weight,
             how_to_cut,top_k,top_p,temperature):
-        
+        out_path = folder_paths.get_output_directory()
         with open(refer_srt, 'r', encoding="utf-8") as file:
             file_content = file.read()
         prompt_language = dict_language[refer_language]
@@ -94,7 +94,6 @@ class GPT_SOVITS_TTS:
         print(f"prompt_text:{prompt_text}")
         outfile = os.path.join(out_path, f"{ttime()}_gpt_sovits_tts.wav")
         
-        out_path = folder_paths.get_output_directory()
         GPT_weight_root = os.path.join(out_path,"gpt_weights")
         gpt_weight = os.path.join(GPT_weight_root, gpt_weight)
         
@@ -102,11 +101,11 @@ class GPT_SOVITS_TTS:
         SoVITS_weight_root = os.path.join(out_path,"sovits_weights")
         sovits_weight = os.path.join(SoVITS_weight_root, sovits_weight)
         
-        get_tts_wav(renfer_audio,prompt_text,prompt_language,
+        result = get_tts_wav(renfer_audio,prompt_text,prompt_language,
             text,text_language,how_to_cut,top_k,top_p,temperature,
             gpt_weight,sovits_weight,outfile)
         
-        return (outfile,)
+        return (result,)
     
 class GPT_SOVITS_INFER:
     @classmethod
@@ -125,7 +124,7 @@ class GPT_SOVITS_INFER:
         
         return {"required":
                     {
-                     "renfer_audio":("STRING",),
+                     "renfer_audio":("AUDIOPATH",),
                      "refer_srt":("SRT",),
                      "if_aliginment":("BOOLEAN",{
                          "default": False
@@ -254,7 +253,10 @@ class GPT_SOVITS_INFER:
         infer_audio = os.path.join(out_path, f"{ttime()}_gpt_sovits_refer.wav")
         new_audio_seg.export(infer_audio, format="wav")
         
-        return (infer_audio,)
+        waveform, sample_rate = torchaudio.load(infer_audio)
+        audio = {"waveform": waveform.unsqueeze(0), "sample_rate": sample_rate}
+    
+        return (audio,)
     def map_vocal(self,audio:AudioSegment,ratio:float,dur_time:float,wav_name:str,temp_folder:str):
         tmp_path = f"{temp_folder}/map_{wav_name}"
         audio.export(tmp_path, format="wav")
@@ -303,7 +305,7 @@ class GPT_SOVITS_FT:
     def INPUT_TYPES(s):
         ft_language_list = ["zh", "en", "ja"]
         return {"required":
-                    {"audio": ("STRING",),
+                    {"audio": ("AUDIOPATH",),
                      "srt": ("SRT",),
                      "exp_name": ("STRING",{
                          "default": "auto"

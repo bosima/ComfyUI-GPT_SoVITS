@@ -1,5 +1,6 @@
 import re,os,sys
 import torch
+import torchaudio
 import librosa
 import cuda_malloc
 import numpy as np
@@ -171,8 +172,9 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text,
             1, 2
         )  # .float()
         codes = vq_model.extract_latent(ssl_content)
-   
         prompt_semantic = codes[0, 0]
+        prompt = prompt_semantic.unsqueeze(0).to(device)
+        
     t1 = ttime()
 
     if (how_to_cut == i18n("凑四句一切")):
@@ -194,7 +196,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text,
     if not ref_free:
         phones1,bert1,norm_text1=get_phones_and_bert(prompt_text, prompt_language)
 
-    for text in texts:
+    for _,text in enumerate(texts):
         # 解决输入目标文本的空行导致报错的问题
         if (len(text.strip()) == 0):
             continue
@@ -202,6 +204,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text,
         print(i18n("实际输入的目标文本(每句):"), text)
         phones2,bert2,norm_text2=get_phones_and_bert(text, text_language)
         print(i18n("前端处理后的文本(每句):"), norm_text2)
+
         if not ref_free:
             bert = torch.cat([bert1, bert2], 1)
             all_phoneme_ids = torch.LongTensor(phones1+phones2).to(device).unsqueeze(0)
@@ -211,7 +214,7 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text,
 
         bert = bert.to(device).unsqueeze(0)
         all_phoneme_len = torch.tensor([all_phoneme_ids.shape[-1]]).to(device)
-        prompt = prompt_semantic.unsqueeze(0).to(device)
+        
         t2 = ttime()
         with torch.no_grad():
             # pred_semantic = t2s_model.model.infer(
@@ -256,9 +259,15 @@ def get_tts_wav(ref_wav_path, prompt_text, prompt_language, text,
     (np.concatenate(audio_opt, 0) * 32768).astype(
         np.int16
     )) 
+    
+    waveform, sample_rate = torchaudio.load(outfile)
+    audio = {"waveform": waveform.unsqueeze(0), "sample_rate": sample_rate}
+    
     del ssl_model,vq_model,t2s_model
     torch.cuda.empty_cache()
-    return outfile
+    
+    #return outfile
+    return audio
 
 def get_spepc(hps, filename):
     audio = load_audio(filename, int(hps.data.sampling_rate))
